@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+</head>
+<body>
+    <fieldset>
+        <h4>Bubble Size: </h4>
+        <input type="number" class="control" id="size" min="5" max="50" step="5" value="5">
+        <h4>Bubble Colour: </h4>
+        <select class="control" id="colour">
+            <option value="#53cf86" selected="selected">Green</option>
+            <option value="#79c6d4">Blue</option>
+            <option value="#d64838">Red</option>
+            <option value="#e0ae19">Yellow</option>
+            <option value="#cd2d8e">Pink</option>
+            <option value="random">Random</option>
+        </select>
+        <h4># of Bubbles: </h4>
+        <input type="number" class="control" id="number" min="0" max="300" step="50" value="100">
+        <h4>Force (Attraction): </h4>
+        <input type="range" class="control" id="attraction" min="-300" max="300" value="-30">
+        <h4>Force (Collision): </h4>
+        <input type="range" class="control" id="collision" min="0" max="5" value="0.5">
+        <h4>Music: </h4>
+        <select class="control" id="music">
+            <option value="cotton.mp3" selected="selected">Cotton Eyed Joe (Rednex)</option>
+            <option value="low.mp3">Low (Flo Rida)</option>
+            <option value="everytime.mp3">Everytime We Touch (Cascada)</option>
+            <option value="wakemeup.mp3">Wake Me Up (Avicii)</option>
+            <option value="mrbrightside.mp3">Mr. Brightside (The Killers)</option>
+        </select>
+        <br>
+        <audio id="player" controls autoplay>
+            <source id="src" src="cotton.mp3" type="audio/mpeg">
+            Your browser does not support the audio element.
+        </audio>
+    </fieldset>
+</body>
+<script src="https://d3js.org/d3.v6.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script>
+    var width = window.innerWidth;
+    var height = window.innerHeight;
+
+    var bubbleSize = 10;
+    var bubbleColour = "#53cf86";
+    var bubbleNumber = 100;
+    var bubbleAttraction = -30;
+    var bubbleCollision = 0.5;
+
+    var svg = d3.select("body")
+        .append("svg")
+        .attr("width", width)
+        .attr("height", height);
+
+    function fillArray(len) {
+        var arr = [];
+        for (var i = 0; i < len; i++) {
+            arr.push({});
+        }
+        return arr;
+    }
+
+    var start = function(size, colour, number, attraction, collision) {
+        var data = fillArray(number)
+
+        var simulation = d3.forceSimulation()
+            .alphaDecay(0)
+            .velocityDecay(0.05)
+            .force("forceX", d3.forceX().strength(.2).x(width * .5))
+            .force("forceY", d3.forceY().strength(.2).y(height * .5))
+            .force("center", d3.forceCenter().x(width * .5).y(height * .5))
+            .force("charge", d3.forceManyBody().strength(attraction));
+
+        simulation
+            .nodes(data)
+            .force("collide", d3.forceCollide().strength(collision).radius(bubbleSize).iterations(1))
+            .on("tick", function(d){
+                node
+                    .attr("cx", function(d){ return d.x; })
+                    .attr("cy", function(d){ return d.y; })
+            });
+
+        var node = svg.append("g")
+            .selectAll("circle")
+            .data(data)
+            .enter()
+            .append("circle")
+            .attr("class", "node")
+            .attr("r", size)
+            .attr("cx", width / 2)
+            .attr("cy", height / 2)
+            .style("fill", colour)
+            .style("fill-opacity", 1)
+            .attr("stroke", "black")
+            .style("stroke-width", 2)
+            .call(d3.drag()
+                .on("start", dragstarted)
+                .on("drag", dragged)
+                .on("end", dragended));
+
+        function dragstarted(event, d) {
+            if (!event.active) simulation.alphaTarget(.03).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+        }
+
+        function dragged(event, d) {
+            d.fx = event.x;
+            d.fy = event.y;
+        }
+
+        function dragended(event, d) {
+            if (!event.active) simulation.alphaTarget(.03);
+            d.fx = null;
+            d.fy = null;
+        }
+    }
+
+    start(bubbleSize, bubbleColour, bubbleNumber, bubbleAttraction, bubbleCollision)
+
+    d3.select('#size')
+        .on('change', function() {
+            d3.selectAll("circle").remove();
+            bubbleSize = this.value;
+            start(bubbleSize, bubbleColour, bubbleNumber, bubbleAttraction, bubbleCollision);
+        });
+
+    d3.select('#colour')
+        .on('change', function() {
+            d3.selectAll("circle").remove();
+            if (this.value == "random") {
+                bubbleColour = '#'+Math.floor(Math.random() * Math.pow(2,32) ^ 0xffffff).toString(16).substr(-6);
+            } else {
+                bubbleColour = this.value;
+            }
+            start(bubbleSize, bubbleColour, bubbleNumber, bubbleAttraction, bubbleCollision);
+        });
+
+    d3.select('#number')
+        .on('change', function() {
+            d3.selectAll("circle").remove();
+            bubbleNumber = this.value;
+            start(bubbleSize, bubbleColour, bubbleNumber, bubbleAttraction, bubbleCollision);
+        });
+
+    d3.select('#attraction')
+        .on('change', function() {
+            d3.selectAll("circle").remove();
+            bubbleAttraction = this.value;
+            start(bubbleSize, bubbleColour, bubbleNumber, bubbleAttraction, bubbleCollision);
+        });
+
+    d3.select('#collision')
+        .on('change', function() {
+            d3.selectAll("circle").remove();
+            bubbleCollision = this.value;
+            start(bubbleSize, bubbleColour, bubbleNumber, bubbleAttraction, bubbleCollision);
+        });
+
+    $(document).ready(function() {
+        $("#music").on("change", function() {
+            change($(this).val());
+        });
+
+    });
+
+    function change(sourceUrl) {
+        var audio = document.getElementById("player");
+        var source = document.getElementById("src");
+
+        audio.pause();
+
+        if (sourceUrl) {
+            source.src = sourceUrl;
+            audio.load();
+            audio.play();
+        }
+    }
+
+</script>
+<style>
+
+    * {
+        font-family: sans-serif;
+    }
+
+    body {
+        background-image: linear-gradient(rgba(255,255,255,.5), rgba(255,255,255,.5)), url("background.jpg");
+        background-repeat: no-repeat;
+        background-size: cover;
+
+    }
+
+    h4 {
+        display: inline;
+    }
+
+    input, select {
+        margin-right: 20px;
+        margin-bottom: 30px;
+    }
+
+    audio {
+        height: 30px
+    }
+
+    #music {
+        width: 120px;
+    }
+
+    fieldset {
+        background-color: white;
+        padding: 20px
+    }
+
+    #attraction, #collision {
+        position: relative;
+        top: 3px;
+    }
+
+</style>
+</html>
