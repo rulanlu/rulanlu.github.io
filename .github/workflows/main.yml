@@ -1,0 +1,45 @@
+name: Deploy to Environment
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+    types: [closed]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set environment variables for staging
+        if: github.ref == 'refs/heads/main' && github.event.pull_request.merged == true
+        run: |
+          echo "ENV_VAR1=${{ secrets.STAGING_VAR1 }}" >> $GITHUB_ENV
+          echo "ENV_VAR2=${{ secrets.STAGING_VAR2 }}" >> $GITHUB_ENV
+
+      - name: Set environment variables for production
+        if: github.ref == 'refs/heads/main' && !github.event.pull_request.merged
+        run: |
+          echo "ENV_VAR1=${{ secrets.PROD_VAR1 }}" >> $GITHUB_ENV
+          echo "ENV_VAR2=${{ secrets.PROD_VAR2 }}" >> $GITHUB_ENV
+
+      - name: Use environment variables in build
+        run: |
+          # Here you would typically run your build command
+          # Replace with your build command, e.g., npm run build
+          echo "Building with $ENV_VAR1 and $ENV_VAR2"
+          # Simulating build output with env vars
+          echo "Built with $ENV_VAR1 and $ENV_VAR2" > build_output.txt
+
+      - name: Deploy artifact
+        run: |
+          # Here you would deploy your artifact
+          # This could be to Heroku, AWS, Google Cloud, etc.
+          echo "Deploying artifact to ${{ github.event.pull_request.merged && 'staging' || 'production' }}..."
+          # Example deployment simulation
+          cat build_output.txt
